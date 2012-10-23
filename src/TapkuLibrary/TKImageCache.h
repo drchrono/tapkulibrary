@@ -77,6 +77,9 @@
 /** The threshold of time images on disk need to be created before to be read from disk. Otherwise the images will be requested from the network again. The time needs to be greater than zero to for the creation date to be check. Default is -1. */
 @property (assign,nonatomic) NSTimeInterval timeTillRefreshCache;
 
+/** The maximum size of the cache.  Files will be pruned to meet this requirement. */
+@property (nonatomic, assign) unsigned long long maxCacheSize;
+
 
 ///-------------------------
 /// @name Getting an image

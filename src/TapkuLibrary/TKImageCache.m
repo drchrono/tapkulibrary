@@ -34,6 +34,8 @@
 #import "TKHTTPRequest.h"
 #import "TKGlobal.h"
 
+#define kDefaultMaxCacheSize (100 * 1024 * 1024) // 100 MB
+
 #pragma mark -
 @interface TKImageRequest : TKHTTPRequest
 @property (strong,nonatomic) NSString *key;
@@ -82,6 +84,8 @@
 	
 	self.notificationName = @"NewCachedImageFile";
 	self.timeTillRefreshCache = -1;
+
+	_maxCacheSize = kDefaultMaxCacheSize;
 	
 	return self;
 }
@@ -177,7 +181,7 @@
 		if(cacheImage==nil) return;
 		
 		[self setObject:cacheImage forKey:request.key];
-		NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:key,@"key",cacheImage,@"image",[NSNumber numberWithUnsignedInt:request.tag],@"tag",nil];
+		NSDictionary *dict = @{@"key" : key, @"image" : cacheImage, @"tag" : @(request.tag), @"success" : @YES}; 
 		
 		dispatch_async(dispatch_get_main_queue(), ^{
 			[_diskKeys setObject:[NSNull null] forKey:request.key];
@@ -186,6 +190,7 @@
 		
 	});
 	
+	dispatch_async(cache_queue, ^{[self pruneCache];});
 	
 }
 - (void) _requestDidFail:(TKImageRequest*)request{
@@ -194,13 +199,64 @@
 	dispatch_async(cache_queue,^{
 		NSString *key = request.key;
 		
-		if([_requestKeys objectForKey:key])
+		if([_requestKeys objectForKey:key]) {
 			[_requestKeys removeObjectForKey:key];
+		}
+		NSDictionary *dict = @{@"key" : key, @"success" : @NO}; 
+		[[NSNotificationCenter defaultCenter] postNotificationName:self.notificationName object:self userInfo:dict];
 	});
 }
 
+- (NSArray *)newCachedFiles {
+    NSError* error = nil;
+    NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[self cacheDirectoryPath] error:&error];
+    NSMutableArray *cf = [[NSMutableArray alloc] init];
+    for (NSString *file in files) {
+	if ([file compare:@".DS_Store"] != NSOrderedSame) {
+	    [cf addObject:[[self cacheDirectoryPath] stringByAppendingPathComponent:file]];
+	}
+    }
+    return cf;
+}
 
+- (unsigned long long)cacheSize:(NSArray *)files {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    __block unsigned long long totalSize = 0;
+    [files enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+	    NSError *e;
+	    NSDictionary *attrs = [fm attributesOfItemAtPath:obj error:&e];
+	    if (e == nil) {
+		totalSize += [attrs fileSize];
+	    }
+	    else {
+		[fm removeItemAtPath:obj error:&e];
+	    }
+	}];
+    return totalSize;
+}
 
+- (void)pruneCache {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSArray *files = [self newCachedFiles];
+    unsigned long long totalSize = [self cacheSize:files];
+
+    if (totalSize > _maxCacheSize) {
+	NSArray *sortedFiles = [files sortedArrayUsingComparator:^(id obj1, id obj2) {
+		NSError *e = nil;
+		NSDictionary *attrs1 = [fm attributesOfItemAtPath:obj1 error:&e];
+		NSDictionary *attrs2 = [fm attributesOfItemAtPath:obj2 error:&e];
+		return [[attrs1 fileCreationDate] compare:[attrs2 fileCreationDate]];
+	    }];
+	
+	NSError* error = nil;
+	NSInteger i = 0;
+	while (totalSize > _maxCacheSize && i < [sortedFiles count]) {
+	    NSDictionary *attrs = [fm attributesOfItemAtPath:sortedFiles[i] error:&error];
+	    [fm removeItemAtPath:sortedFiles[i++] error:&error];
+	    if (error == nil) totalSize -= [attrs fileSize];
+	}
+    }
+}
 
 
 // for subclassing if you need to process the image
@@ -277,14 +333,8 @@
 	
 }
 - (void) printAllCaching{
-	
-	NSError* error = nil;
-	NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[self cacheDirectoryPath] error:&error];
-	
-	TKLog(@"%@",files);
-	
-	
-	
+    //    NSError* error = nil;
+    //    NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[self cacheDirectoryPath] error:&error];
 }
 
 
@@ -316,8 +366,7 @@
 		
 		if(cacheImage==nil) return;
 		[self setObject:cacheImage forKey:key];
-		NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:key,@"key",cacheImage,@"image",[NSNumber numberWithUnsignedInt:tag],@"tag",nil];
-		
+		NSDictionary *dict = @{@"key" : key, @"image" : cacheImage, @"tag" : @(tag), @"success" : @YES}; 
 		
 		dispatch_async(dispatch_get_main_queue(), ^{
 			[[NSNotificationCenter defaultCenter] postNotificationName:self.notificationName object:self userInfo:dict];
@@ -326,8 +375,9 @@
 		
 		
 	});
-	
+	dispatch_async(cache_queue, ^{[self pruneCache];});
 }
+
 - (UIImage*) cachedImageForKey:(NSString*)key{
 	return [self _imageFromDiskWithKey:key];
 }
