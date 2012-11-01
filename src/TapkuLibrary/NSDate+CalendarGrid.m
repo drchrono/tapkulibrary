@@ -13,7 +13,7 @@
 
 
 - (NSDate*) firstOfMonth{
-	TKDateInformation info = [self dateInformationWithTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
+	TKDateInformation info = [self dateInformationWithTimeZone:[NSTimeZone systemTimeZone]];
 	info.day = 1;
 	info.minute = 0;
 	info.second = 0;
