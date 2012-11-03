@@ -583,21 +583,6 @@
 	return _selectedImageView;
 }
 
-- (BOOL)isAccessibilityElement
-{
-    return YES;
-}
-
-- (NSString *)accessibilityLabel
-{
-    return @"Days of selected month";
-}
-
-- (NSString *)accessibilityHint
-{
-    return @"Select day to see available hours.";
-}
-
 @end
 
 
