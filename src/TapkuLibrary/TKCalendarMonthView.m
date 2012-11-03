@@ -305,9 +305,13 @@
 	
 	CGContextRef context = UIGraphicsGetCurrentContext();
 	UIImage *tile = [UIImage imageWithContentsOfFile:TKBUNDLE(@"TapkuLibrary.bundle/Images/calendar/Month Calendar Date Tile.png")];
+//    tile.isAccessibilityElement = YES;
+//    tile.accessibilityLabel = @"Day";
+//    tile.accessibilityHint = @"Tap to select day";
+    
 	CGRect r = CGRectMake(0, 0, 46, 44);
 	CGContextDrawTiledImage(context, r, tile.CGImage);
-	
+    
 	if(today > 0){
 		int pre = firstOfPrev > 0 ? lastOfPrev - firstOfPrev + 1 : 0;
 		int index = today +  pre-1;
@@ -579,6 +583,21 @@
 	return _selectedImageView;
 }
 
+- (BOOL)isAccessibilityElement
+{
+    return YES;
+}
+
+- (NSString *)accessibilityLabel
+{
+    return @"Days of selected month";
+}
+
+- (NSString *)accessibilityHint
+{
+    return @"Select day to see available hours.";
+}
+
 @end
 
 
@@ -622,7 +641,14 @@
 	self.monthYear.text = [date monthYearString];
 	[self addSubview:self.monthYear];
 	
-	
+	self.leftArrow.isAccessibilityElement = YES;
+    self.leftArrow.accessibilityLabel = @"Previous";
+    self.leftArrow.accessibilityHint = @"Displays previous month";
+
+    self.rightArrow.isAccessibilityElement = YES;
+    self.rightArrow.accessibilityLabel = @"Next";
+    self.rightArrow.accessibilityHint = @"Displays next month";
+    
 	[self addSubview:self.leftArrow];
 	[self addSubview:self.rightArrow];
 	[self addSubview:self.shadow];
@@ -633,7 +659,10 @@
 	[dateFormat setDateFormat:@"eee"];
 	[dateFormat setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
 	
-	
+	NSDateFormatter *accDateFormat = [[NSDateFormatter alloc] init];
+	[accDateFormat setDateFormat:@"EEEE"];
+	[accDateFormat setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
+    
 	TKDateInformation sund;
 	sund.day = 5;
 	sund.month = 12;
@@ -646,29 +675,40 @@
 	
 	NSTimeZone *tz = [NSTimeZone timeZoneForSecondsFromGMT:0];
 	NSString * sun = [dateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
-	
+	NSString * sunAcc = [accDateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
+    
 	sund.day = 6;
 	NSString *mon = [dateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
+	NSString * monAcc = [accDateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
 	
 	sund.day = 7;
 	NSString *tue = [dateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
-	
+	NSString * tueAcc = [accDateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
+    
 	sund.day = 8;
 	NSString *wed = [dateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
-	
+	NSString * wedAcc = [accDateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
+    
 	sund.day = 9;
 	NSString *thu = [dateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
-	
+	NSString * thuAcc = [accDateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
+    
 	sund.day = 10;
 	NSString *fri = [dateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
-	
+	NSString * friAcc = [accDateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
+    
 	sund.day = 11;
 	NSString *sat = [dateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
-	
+	NSString * satAcc = [accDateFormat stringFromDate:[NSDate dateFromDateInformation:sund timeZone:tz]];
+    
 	NSArray *ar;
 	if(sunday) ar = [NSArray arrayWithObjects:sun,mon,tue,wed,thu,fri,sat,nil];
 	else ar = [NSArray arrayWithObjects:mon,tue,wed,thu,fri,sat,sun,nil];
 	
+    NSArray *acc;
+    if (sunday) acc = [NSArray arrayWithObjects:sunAcc,monAcc,tueAcc,wedAcc,thuAcc,friAcc,satAcc,nil];
+    else acc = [NSArray arrayWithObjects:monAcc,tueAcc,wedAcc,thuAcc,friAcc,satAcc,sunAcc,nil];
+    
 	int i = 0;
 	for(NSString *s in ar){
 		UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(46 * i, 29, 46, 15)];
@@ -698,6 +738,10 @@
 		label.font = [UIFont systemFontOfSize:11];
 		label.backgroundColor = [UIColor clearColor];
 		label.textColor = [UIColor colorWithRed:59/255. green:73/255. blue:88/255. alpha:1];
+        
+        label.isAccessibilityElement = YES;
+        //label.accessibilityValue = [acc objectAtIndex:i];
+        label.accessibilityLabel = [acc objectAtIndex:i];
 		i++;
 	}
 	
