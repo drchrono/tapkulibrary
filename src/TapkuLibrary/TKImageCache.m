@@ -42,7 +42,6 @@
 @end
 
 @implementation TKImageRequest
-@synthesize key;
 @end
 
 
@@ -60,10 +59,6 @@
 
 #pragma mark -
 @implementation TKImageCache
-@synthesize cacheDirectoryName=_cacheDirectoryName,notificationName=_notificationName;
-@synthesize timeTillRefreshCache=_timeTillRefreshCache;
-@synthesize imagesQueue=_imagesQueue;
-@synthesize shouldNetworkActivity;
 
 - (id) init{
 	self = [self initWithCacheDirectoryName:@"imagecache"];
@@ -89,9 +84,7 @@
 	
 	return self;
 }
-- (void) dealloc{
-	dispatch_release(cache_queue);
-}
+
 
 
 
