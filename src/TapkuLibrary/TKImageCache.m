@@ -85,8 +85,10 @@
 	return self;
 }
 
-
-
+- (void)dealloc
+{
+    dispatch_release(cache_queue);
+}
 
 - (UIImage*) imageForKey:(NSString*)key url:(NSURL*)url queueIfNeeded:(BOOL)queueIfNeeded{
 	return [self imageForKey:key url:url queueIfNeeded:queueIfNeeded tag:0];
@@ -280,8 +282,8 @@
 		
 		
 		for( NSString *file in files ) {
-			if( file != @"." && file != @".." ) {
-				NSString *path = [[self cacheDirectoryPath] stringByAppendingPathComponent:file];
+			if(![file isEqualToString:@"."] && ![file isEqualToString:@".."]) {
+                    NSString *path = [[self cacheDirectoryPath] stringByAppendingPathComponent:file];
 				[[NSFileManager defaultManager] removeItemAtPath:path error:&error];
 				
 			}
@@ -304,7 +306,7 @@
 		NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:&error];
 		
 		for( NSString *file in files ) {
-			if( file != @"." && file != @".." ) {
+			if(![file isEqualToString:@"."] && ![file isEqualToString:@".."]) {
 				
 				NSString *path = [path stringByAppendingPathComponent:file];
 				NSDate *created = [[[NSFileManager defaultManager] attributesOfItemAtPath:path error:NULL] fileCreationDate];
